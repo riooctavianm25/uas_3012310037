@@ -232,7 +232,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         GestureDetector(
           onTap: () {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const LoginPage()),
             );
