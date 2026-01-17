@@ -1,4 +1,4 @@
-import 'package:uas_3012310037/data/model/tourism_place.dart';
+import 'package:uas_3012310037/data/model/destinations.dart';
 
 class GetPlacesResponse {
   final List<TourismPlace> places;
