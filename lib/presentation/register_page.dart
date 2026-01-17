@@ -52,7 +52,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     try {
-      await _authRepository.register(request);
+      final result = await _authRepository.register(request);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
