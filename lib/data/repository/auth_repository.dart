@@ -10,12 +10,12 @@ class AuthRepository {
 
   AuthRepository({required this.httpService});
 
-  Future<void> register(RegisterRequest request) async {
+  Future<AuthResponse> register(RegisterRequest request) async {
     try {
       final response = await httpService.post('auth/register', request.toMap());
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return;
+        return AuthResponse.fromJson(data);
       } else {
         final errorData = jsonDecode(response.body);
         final errorMessage = errorData['message'] ?? 'Failed to register user';
@@ -26,12 +26,12 @@ class AuthRepository {
     }
   }
 
-  Future<void> login(Map<String, dynamic> body) async {
+  Future<AuthResponse> login(Map<String, dynamic> body) async {
     try {
       final response = await httpService.post('auth/login', body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return;
+        return AuthResponse.fromJson(data);
       } else {
         final errorData = jsonDecode(response.body);
         final errorMessage = errorData['message'] ?? 'Failed to login user';
