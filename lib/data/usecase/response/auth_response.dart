@@ -13,9 +13,9 @@ class AuthResponse {
     final userData = json['user'] != null ? json['user'] : json;
 
     return AuthResponse(
-      token: json['token'],
-      name: userData['name'],
-      email: userData['email'],
+      token: json['token'] ?? json['access_token'] ?? '', 
+      name: userData['name'] ?? '',
+      email: userData['email'] ?? '',
     );
   }
 }
