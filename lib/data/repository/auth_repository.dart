@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/request/register_request.dart';
+import 'package:uas_3012310037/data/usecase/response/auth_response.dart';
 
 
 class AuthRepository {
@@ -8,14 +10,24 @@ class AuthRepository {
 
   AuthRepository({required this.httpService});
 
-  Future<http.Response> register(RegisterRequest request) async {
+  Future<AuthRepository> register(RegisterRequest request) async {
     final response = await httpService.post('register', request.toMap());
-    return response;
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return AuthRepository(httpService: httpService);
+    } else {
+      throw Exception('Failed to register user');
+    }
   }
 
-  Future<http.Response> login(Map<String, dynamic> body) async {
+  Future<AuthRepository> login(Map<String, dynamic> body) async {
     final response = await httpService.post('login', body);
-    return response;
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return AuthRepository(httpService: httpService);
+    } else {
+      throw Exception('Failed to login user');
+    }
   }
 
   Future<http.Response> logout() async {
