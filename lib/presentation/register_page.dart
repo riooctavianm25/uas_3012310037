@@ -187,7 +187,7 @@ class _RegisterPageState extends State<RegisterPage> {
           onSuffixPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
           validator: (val) {
             if (val!.isEmpty) return "Please confirm password";
-            if (val != _passCtr.text) return "Passwords do not match";
+            if (val.trim() != _passCtr.text.trim()) return "Passwords do not match";
             return null;
           },
         ),
