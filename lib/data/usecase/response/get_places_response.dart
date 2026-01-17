@@ -7,8 +7,8 @@ class GetPlacesResponse {
 
   factory GetPlacesResponse.fromJson(Map<String, dynamic> json) {
     List<TourismPlace> places = [];
-    if (json['places'] != null) {
-      places = (json['places'] as List)
+    if (json['data'] != null) {
+      places = (json['data'] as List)
           .map((place) => TourismPlace.fromJson(place))
           .toList();
     }
@@ -17,7 +17,7 @@ class GetPlacesResponse {
 
   Map<String, dynamic> toJson() {
     return {
-      'places': places.map((place) => place.toJson()).toList(),
+      'data': places.map((place) => place.toJson()).toList(),
     };
   }
 }
