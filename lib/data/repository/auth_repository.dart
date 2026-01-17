@@ -10,23 +10,35 @@ class AuthRepository {
 
   AuthRepository({required this.httpService});
 
-  Future<AuthRepository> register(RegisterRequest request) async {
-    final response = await httpService.post('register', request.toMap());
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return AuthRepository(httpService: httpService);
-    } else {
-      throw Exception('Failed to register user');
+  Future<void> register(RegisterRequest request) async {
+    try {
+      final response = await httpService.post('register', request.toMap());
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return;
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['message'] ?? 'Failed to register user';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 
-  Future<AuthRepository> login(Map<String, dynamic> body) async {
-    final response = await httpService.post('login', body);
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return AuthRepository(httpService: httpService);
-    } else {
-      throw Exception('Failed to login user');
+  Future<void> login(Map<String, dynamic> body) async {
+    try {
+      final response = await httpService.post('login', body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return;
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['message'] ?? 'Failed to login user';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 
