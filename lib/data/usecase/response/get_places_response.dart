@@ -7,11 +7,17 @@ class GetPlacesResponse {
 
   factory GetPlacesResponse.fromJson(Map<String, dynamic> json) {
     List<TourismPlace> places = [];
-    if (json['data'] != null) {
-      places = (json['data'] as List)
-          .map((place) => TourismPlace.fromJson(place))
-          .toList();
+
+    var data = json['data'];
+
+    if (data != null) {
+      if (data is List) {
+        places = data.map((e) => TourismPlace.fromJson(e)).toList();
+      } else if (data is Map<String, dynamic> && data['data'] != null && data['data'] is List) {
+        places = (data['data'] as List).map((e) => TourismPlace.fromJson(e)).toList();
+      }
     }
+
     return GetPlacesResponse(places: places);
   }
 
