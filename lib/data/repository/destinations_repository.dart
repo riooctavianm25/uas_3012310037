@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 
@@ -26,14 +27,24 @@ class DestinationsRepository {
 
   Future<bool> addDestination(File image, String name, String desc, String address) async {
     try {
-      var uri = Uri.parse('http://10.0.2.2:8000/api/destinations');
+      var uri = Uri.parse('http://192.168.1.2:8000/api/destinations');
       
       var request = http.MultipartRequest('POST', uri);
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('token');
+
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
 
       request.fields['name'] = name;
       request.fields['description'] = desc;
       request.fields['address'] = address;
-      request.fields['avg_rating'] = '4.5';
+      request.fields['latitude'] = '0.0';
+      request.fields['longitude'] = '0.0';
+      request.fields['avg_rating'] = '0.0';
 
       var pic = await http.MultipartFile.fromPath("cover_image", image.path);
       request.files.add(pic);

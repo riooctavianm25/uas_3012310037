@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/request/login_request.dart';
 import '../data/repository/auth_repository.dart';
@@ -49,6 +50,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final authResponse = await _authRepository.login(request.toJson());
 
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', authResponse.token);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -56,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
