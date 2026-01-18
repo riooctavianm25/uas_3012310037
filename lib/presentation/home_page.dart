@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late TourismRepository _repository;
+  late DestinationsRepository _repository;
   int _selectedIndex = 0;
   final _searchCtr = TextEditingController();
   final ImagePicker _picker = ImagePicker();
@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     final httpService = HttpService();
-    _repository = TourismRepository(httpService: httpService);
+    _repository = DestinationsRepository(httpService: httpService);
   }
 
   @override
