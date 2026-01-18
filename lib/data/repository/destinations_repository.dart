@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 
-class TourismRepository {
+class DestinationsRepository {
   final HttpService httpService;
 
-  TourismRepository({required this.httpService});
+  DestinationsRepository({required this.httpService});
 
   Future<GetPlacesResponse> getDestinations({int page = 1}) async {
     final response = await httpService.get('destinations', {'page': page.toString()});
