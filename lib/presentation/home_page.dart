@@ -38,7 +38,8 @@ class _HomePageState extends State<HomePage> {
     try {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 50,
+        maxWidth: 600,
+        imageQuality: 20,
       );
 
       if (photo != null && mounted) {
