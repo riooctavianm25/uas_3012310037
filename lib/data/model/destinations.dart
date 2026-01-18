@@ -1,4 +1,4 @@
-class TourismPlace {
+class destinations {
   final int id;
   final String name;
   final String description;
@@ -6,7 +6,7 @@ class TourismPlace {
   final String image;
   final double rating;
 
-  TourismPlace({
+  destinations({
     required this.id,
     required this.name,
     required this.description,
@@ -15,8 +15,8 @@ class TourismPlace {
     required this.rating,
   });
 
-  factory TourismPlace.fromJson(Map<String, dynamic> json) {
-    return TourismPlace(
+  factory destinations.fromJson(Map<String, dynamic> json) {
+    return destinations(
       id: json['id'] ?? 0,
       name: json['name'] ?? 'No Name',
       description: json['description'] ?? '',
