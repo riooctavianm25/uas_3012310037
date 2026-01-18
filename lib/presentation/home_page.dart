@@ -1,10 +1,11 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uas_3012310037/data/model/destinations.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/repository/destinations_repository.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
+import 'package:uas_3012310037/presentation/add_place.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,15 +40,13 @@ class _HomePageState extends State<HomePage> {
         imageQuality: 50,
       );
 
-      if (photo != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Foto berhasil diambil: ${photo.name}"),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+      if (photo != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddPlacePage(imageFile: photo),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Error camera: $e");
@@ -73,8 +72,6 @@ class _HomePageState extends State<HomePage> {
               headerSection(),
               const SizedBox(height: 24),
               searchSection(),
-              const SizedBox(height: 24),
-              Expanded(child: contentSection()),
             ],
           ),
         ),
@@ -138,130 +135,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  Widget contentSection() {
-    return FutureBuilder<GetPlacesResponse>(
-      future: _repository.getDestinations(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
-          );
-        } else if (snapshot.hasError) {
-          return Center(child: Text("Error loading data"));
-        } else if (!snapshot.hasData || snapshot.data!.places.isEmpty) {
-          return const Center(child: Text("No destinations found"));
-        }
-
-        final places = snapshot.data!.places;
-
-        return ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          itemCount: places.length,
-          itemBuilder: (context, index) {
-            return _buildDestinationCard(places[index]);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildDestinationCard(TourismPlace place) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              place.image,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 180,
-                  color: Colors.grey[200],
-                  child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        place.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                        const SizedBox(width: 4),
-                        Text(
-                          place.rating.toString(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_outlined, color: Color(0xFF6C63FF), size: 16),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        place.address,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  
   Widget bottomNavSection() {
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
