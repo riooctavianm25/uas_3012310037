@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uas_3012310037/data/repository/destinations_repository.dart';
+import 'package:uas_3012310037/data/service/httpservice.dart';
 
 class AddPlacePage extends StatefulWidget {
   final XFile imageFile;
@@ -16,6 +18,14 @@ class _AddPlacePageState extends State<AddPlacePage> {
   final _descCtr = TextEditingController();
   final _addressCtr = TextEditingController();
   bool _isLoading = false;
+  late DestinationsRepository _repository;
+
+  @override
+  void initState() {
+    super.initState();
+    final httpService = HttpService();
+    _repository = DestinationsRepository(httpService: httpService);
+  }
 
   @override
   void dispose() {
@@ -26,20 +36,41 @@ class _AddPlacePageState extends State<AddPlacePage> {
   }
 
   void _submitData() async {
+    if (_nameCtr.text.isEmpty || _addressCtr.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    
-    // Simulasi delay request API
-    await Future.delayed(const Duration(seconds: 2));
+
+    final success = await _repository.addDestination(
+      File(widget.imageFile.path),
+      _nameCtr.text,
+      _descCtr.text,
+      _addressCtr.text,
+    );
 
     if (mounted) {
       setState(() => _isLoading = false);
-      Navigator.pop(context); // Kembali ke Home
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Place added successfully!"),
-          backgroundColor: Colors.green,
-        ),
-      );
+
+      if (success) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Place added successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to upload data"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http; 
+import 'package:http/http.dart' as http;
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 
@@ -26,16 +26,16 @@ class DestinationsRepository {
 
   Future<bool> addDestination(File image, String name, String desc, String address) async {
     try {
-      var uri = Uri.parse('https://api.kontenbase.com/query/api/v1/YOUR_PROJECT_ID/destinations'); 
+      var uri = Uri.parse('http://10.0.2.2:8000/api/destinations');
       
       var request = http.MultipartRequest('POST', uri);
 
       request.fields['name'] = name;
       request.fields['description'] = desc;
       request.fields['address'] = address;
-      request.fields['rating'] = '4.5'; 
+      request.fields['avg_rating'] = '4.5';
 
-      var pic = await http.MultipartFile.fromPath("image", image.path);
+      var pic = await http.MultipartFile.fromPath("cover_image", image.path);
       request.files.add(pic);
 
       var response = await request.send();
@@ -44,7 +44,7 @@ class DestinationsRepository {
         return true;
       } else {
         final respStr = await response.stream.bytesToString();
-        print("Gagal upload: ${response.statusCode} - $respStr");
+        print("Upload failed: ${response.statusCode} - $respStr");
         return false;
       }
     } catch (e) {
