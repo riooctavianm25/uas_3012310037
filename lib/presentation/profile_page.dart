@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uas_3012310037/data/repository/destinations_repository.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
+import 'package:uas_3012310037/presentation/login_page.dart'; // Pastikan import halaman login Anda
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,8 +14,12 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late DestinationsRepository _repository;
+  
+  // Default values
   String _name = "Loading...";
   String _email = "Loading...";
+  
+  // Ganti IP sesuai laptop
   final String _currentIp = "192.168.1.4"; 
   late final String _imageBaseUrl;
 
@@ -24,14 +29,39 @@ class _ProfilePageState extends State<ProfilePage> {
     final httpService = HttpService();
     _repository = DestinationsRepository(httpService: httpService);
     _imageBaseUrl = "http://$_currentIp:8000/storage/";
+    
+    // Panggil fungsi load saat halaman dibuka
     _loadUserProfile();
   }
 
+  // Fungsi untuk mengambil data dari SharedPreferences
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      // Mengambil data yang disimpan saat Login
       _name = prefs.getString('name') ?? "Guest User";
       _email = prefs.getString('email') ?? "guest@email.com";
+    });
+  }
+
+  // Fungsi Logout
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Hapus semua data login
+    
+    if (!mounted) return;
+    
+    // Arahkan kembali ke halaman Login (Sesuaikan nama class Login page Anda)
+    // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+    
+    // Atau tampilkan snackbar jika belum ada halaman login
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Berhasil Logout")),
+    );
+    
+    setState(() {
+       _name = "Guest User";
+       _email = "guest@email.com";
     });
   }
 
@@ -39,10 +69,33 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          // Tombol Logout di pojok kanan atas
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            onPressed: _logout,
+            tooltip: "Logout",
+          )
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 10),
+            // Avatar Placeholder
+            CircleAvatar(
+              radius: 50,
+              backgroundColor: const Color(0xFF6C63FF).withOpacity(0.2),
+              child: Text(
+                _name.isNotEmpty ? _name[0].toUpperCase() : "G",
+                style: const TextStyle(fontSize: 40, color: Color(0xFF6C63FF)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Nama User
             Text(
               _name,
               style: const TextStyle(
@@ -52,6 +105,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             const SizedBox(height: 8),
+            // Email User
             Text(
               _email,
               style: const TextStyle(color: Colors.grey, fontSize: 16),
@@ -68,6 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+            // List Postingan
             Expanded(
               child: FutureBuilder<GetPlacesResponse>(
                 future: _repository.getDestinations(),
@@ -82,6 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     return const Center(child: Text("Belum ada postingan."));
                   }
 
+                  // Ambil data dan reverse agar yang terbaru di atas
                   final places = snapshot.data!.places.reversed.toList();
 
                   return ListView.builder(

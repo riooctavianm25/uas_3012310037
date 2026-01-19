@@ -21,8 +21,8 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final _searchCtr = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  late Future<GetPlacesResponse> _placesFuture;
 
-  // Ganti IP ini sesuai IP Laptop Anda saat ini
   final String _currentIp = "192.168.1.4";
   late final String _imageBaseUrl;
 
@@ -32,6 +32,17 @@ class _HomePageState extends State<HomePage> {
     final httpService = HttpService();
     _repository = DestinationsRepository(httpService: httpService);
     _imageBaseUrl = "http://$_currentIp:8000/storage/";
+    _placesFuture = _repository.getDestinations();
+
+    _searchCtr.addListener(() {
+      setState(() {});
+    });
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _placesFuture = _repository.getDestinations();
+    });
   }
 
   @override
@@ -57,7 +68,7 @@ class _HomePageState extends State<HomePage> {
         );
 
         if (result == true) {
-          setState(() {});
+          _refreshData();
         }
       }
     } catch (e) {
@@ -88,120 +99,169 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 16),
           Expanded(
             child: FutureBuilder<GetPlacesResponse>(
-              future: _repository.getDestinations(),
+              future: _placesFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+
                 if (!snapshot.hasData || snapshot.data!.places.isEmpty) {
-                  return const Center(child: Text("No places found"));
+                  return RefreshIndicator(
+                    onRefresh: _refreshData,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 100),
+                        Center(child: Text("No places found")),
+                      ],
+                    ),
+                  );
                 }
 
-                final places = snapshot.data!.places;
+                var places = snapshot.data!.places;
+                String query = _searchCtr.text.toLowerCase();
 
-                return ListView.builder(
-                  itemCount: places.length,
-                  itemBuilder: (context, index) {
-                    final place = places[index];
+                if (query.isNotEmpty) {
+                  places = places.where((place) {
+                    final nameLower = place.name.toLowerCase();
+                    final addressLower = place.address.toLowerCase();
+                    return nameLower.contains(query) ||
+                        addressLower.contains(query);
+                  }).toList();
+                }
 
-                    // LOGIKA PERBAIKAN URL:
-                    String imageUrl;
-                    if (place.image.startsWith('http')) {
-                      imageUrl = place.image.replaceAll('10.0.2.2', _currentIp);
-                    } else {
-                      String cleanPath = place.image
-                          .replaceAll('public/', '')
-                          .replaceAll('storage/', '');
-                      imageUrl = _imageBaseUrl + cleanPath;
-                    }
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailDestinationPage(
-                              place: place,
-                              imageUrl: imageUrl,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                if (places.isEmpty) {
+                  return RefreshIndicator(
+                    onRefresh: _refreshData,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 50),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12)),
-                              child: Image.network(
-                                imageUrl,
-                                height: 180,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return SizedBox(
-                                    height: 180,
-                                    child: const Center(
-                                        child: CircularProgressIndicator()),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 180,
-                                    width: double.infinity,
-                                    color: Colors.grey[300],
-                                    padding: const EdgeInsets.all(10),
-                                    alignment: Alignment.center,
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.broken_image,
-                                            color: Colors.grey, size: 40),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          "Gagal memuat:\n$imageUrl",
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontSize: 10, color: Colors.red),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    place.name,
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    place.address,
-                                    style: TextStyle(
-                                        color: Colors.grey[600], fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            const Icon(Icons.search_off,
+                                size: 50, color: Colors.grey),
+                            const SizedBox(height: 10),
+                            Text("No results for '${_searchCtr.text}'",
+                                style: const TextStyle(color: Colors.grey)),
                           ],
                         ),
-                      ),
-                    );
-                  },
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _refreshData,
+                  color: const Color(0xFF6C63FF),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: places.length,
+                    itemBuilder: (context, index) {
+                      final place = places[index];
+                      String imageUrl;
+
+                      if (place.image.startsWith('http')) {
+                        imageUrl =
+                            place.image.replaceAll('10.0.2.2', _currentIp);
+                      } else {
+                        String cleanPath = place.image
+                            .replaceAll('public/', '')
+                            .replaceAll('storage/', '');
+                        imageUrl = _imageBaseUrl + cleanPath;
+                      }
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailDestinationPage(
+                                place: place,
+                                imageUrl: imageUrl,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12)),
+                                child: Image.network(
+                                  imageUrl,
+                                  height: 180,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return SizedBox(
+                                      height: 180,
+                                      child: const Center(
+                                          child: CircularProgressIndicator()),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 180,
+                                      width: double.infinity,
+                                      color: Colors.grey[300],
+                                      padding: const EdgeInsets.all(10),
+                                      alignment: Alignment.center,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.broken_image,
+                                              color: Colors.grey, size: 40),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            "Gagal memuat:\n$imageUrl",
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.red),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      place.name,
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      place.address,
+                                      style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -213,7 +273,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // UPDATED: Hanya menyisakan Home dan Profile
     final List<Widget> widgetOptions = [
       _buildHomeView(),
       const ProfilePage(),
@@ -293,7 +352,6 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // TOMBOL HOME (Index 0)
             IconButton(
               icon: Icon(Icons.home_filled,
                   color: _selectedIndex == 0
@@ -301,11 +359,7 @@ class _HomePageState extends State<HomePage> {
                       : Colors.grey),
               onPressed: () => _onItemTapped(0),
             ),
-            
-            // SPACER untuk FloatingActionButton di tengah
-            const SizedBox(width: 40), 
-
-            // TOMBOL PROFILE (Sekarang Index 1, sebelumnya Search/Fav dihapus)
+            const SizedBox(width: 40),
             IconButton(
               icon: Icon(Icons.person_outline,
                   color: _selectedIndex == 1
