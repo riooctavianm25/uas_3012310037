@@ -13,23 +13,25 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late DestinationsRepository _repository;
-  String _name = "User Pengguna";
-  String _email = "user@email.com";
-  final String _imageBaseUrl = "http://192.168.1.2:8000/storage/";
+  String _name = "Loading...";
+  String _email = "Loading...";
+  final String _currentIp = "192.168.1.4"; 
+  late final String _imageBaseUrl;
 
   @override
   void initState() {
     super.initState();
     final httpService = HttpService();
     _repository = DestinationsRepository(httpService: httpService);
+    _imageBaseUrl = "http://$_currentIp:8000/storage/";
     _loadUserProfile();
   }
 
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _name = prefs.getString('name') ?? "User Pengguna";
-      _email = prefs.getString('email') ?? "user@email.com";
+      _name = prefs.getString('name') ?? "Guest User";
+      _email = prefs.getString('email') ?? "guest@email.com";
     });
   }
 
@@ -40,24 +42,24 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            const CircleAvatar(
-              radius: 50,
-              backgroundImage: NetworkImage("https://i.pravatar.cc/300"),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 40),
             Text(
               _name,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 24, 
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF6C63FF),
+              ),
             ),
+            const SizedBox(height: 8),
             Text(
               _email,
-              style: const TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
             ),
             const SizedBox(height: 30),
-            const Divider(),
+            const Divider(thickness: 1, indent: 20, endIndent: 20),
             const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -84,18 +86,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   return ListView.builder(
                     itemCount: places.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                     itemBuilder: (context, index) {
                       final place = places[index];
-                      String imageUrl = place.image;
                       
-                      if (!imageUrl.startsWith('http')) {
-                        imageUrl = _imageBaseUrl + imageUrl;
+                      String imageUrl;
+                      if (place.image.startsWith('http')) {
+                        imageUrl = place.image.replaceAll('10.0.2.2', _currentIp);
+                      } else {
+                        String cleanPath = place.image
+                            .replaceAll('public/', '')
+                            .replaceAll('storage/', '');
+                        imageUrl = _imageBaseUrl + cleanPath;
                       }
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 2,
+                        elevation: 3,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -109,12 +116,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                 height: 180,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return SizedBox(
+                                    height: 180,
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  );
+                                },
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
                                     height: 180,
+                                    width: double.infinity,
                                     color: Colors.grey[300],
                                     child: const Center(
-                                      child: Icon(Icons.broken_image, color: Colors.grey),
+                                      child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
                                     ),
                                   );
                                 },
