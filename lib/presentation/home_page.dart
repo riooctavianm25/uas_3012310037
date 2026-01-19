@@ -7,7 +7,7 @@ import 'package:uas_3012310037/data/repository/destinations_repository.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 import 'package:uas_3012310037/presentation/add_place.dart';
 import 'package:uas_3012310037/presentation/profile_page.dart';
-import 'package:uas_3012310037/presentation/detail_page.dart'; // Import halaman detail
+import 'package:uas_3012310037/presentation/detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -213,10 +213,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // UPDATED: Hanya menyisakan Home dan Profile
     final List<Widget> widgetOptions = [
       _buildHomeView(),
-      const Center(child: Text("Search Page")),
-      const Center(child: Text("Favorites Page")),
       const ProfilePage(),
     ];
 
@@ -294,6 +293,7 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
+            // TOMBOL HOME (Index 0)
             IconButton(
               icon: Icon(Icons.home_filled,
                   color: _selectedIndex == 0
@@ -301,27 +301,17 @@ class _HomePageState extends State<HomePage> {
                       : Colors.grey),
               onPressed: () => _onItemTapped(0),
             ),
+            
+            // SPACER untuk FloatingActionButton di tengah
+            const SizedBox(width: 40), 
+
+            // TOMBOL PROFILE (Sekarang Index 1, sebelumnya Search/Fav dihapus)
             IconButton(
-              icon: Icon(Icons.search,
+              icon: Icon(Icons.person_outline,
                   color: _selectedIndex == 1
                       ? const Color(0xFF6C63FF)
                       : Colors.grey),
               onPressed: () => _onItemTapped(1),
-            ),
-            const SizedBox(width: 40),
-            IconButton(
-              icon: Icon(Icons.favorite_border,
-                  color: _selectedIndex == 2
-                      ? const Color(0xFF6C63FF)
-                      : Colors.grey),
-              onPressed: () => _onItemTapped(2),
-            ),
-            IconButton(
-              icon: Icon(Icons.person_outline,
-                  color: _selectedIndex == 3
-                      ? const Color(0xFF6C63FF)
-                      : Colors.grey),
-              onPressed: () => _onItemTapped(3),
             ),
           ],
         ),
