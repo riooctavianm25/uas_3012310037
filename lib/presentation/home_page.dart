@@ -20,13 +20,17 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final _searchCtr = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  final String _imageBaseUrl = "http://10.16.44.176:8000/storage/";
+  
+  // Ganti IP ini sesuai IP Laptop Anda saat ini
+  final String _currentIp = "10.16.44.176"; 
+  late final String _imageBaseUrl;
 
   @override
   void initState() {
     super.initState();
     final httpService = HttpService();
     _repository = DestinationsRepository(httpService: httpService);
+    _imageBaseUrl = "http://$_currentIp:8000/storage/";
   }
 
   @override
@@ -98,18 +102,20 @@ class _HomePageState extends State<HomePage> {
                   itemCount: places.length,
                   itemBuilder: (context, index) {
                     final place = places[index];
-                    
-                    // PERBAIKAN: Hapus 'public/' DAN 'storage/' agar tidak dobel
-                    String cleanPath = place.image
-                        .replaceAll('public/', '')
-                        .replaceAll('storage/', '');
-                    
-                    String imageUrl = place.image.startsWith('http') 
-                        ? place.image 
-                        : _imageBaseUrl + cleanPath;
-                        
-                    print("Flutter mencoba membuka: $imageUrl");
-                    
+
+                    // LOGIKA PERBAIKAN URL:
+                    String imageUrl;
+                    if (place.image.startsWith('http')) {
+                      // Jika URL dari database mengandung 10.0.2.2 (Emulator), paksa ganti ke IP Laptop
+                      imageUrl = place.image.replaceAll('10.0.2.2', _currentIp);
+                    } else {
+                      // Jika URL relative, gabungkan dengan base URL
+                      String cleanPath = place.image
+                          .replaceAll('public/', '')
+                          .replaceAll('storage/', '');
+                      imageUrl = _imageBaseUrl + cleanPath;
+                    }
+
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(
@@ -126,13 +132,36 @@ class _HomePageState extends State<HomePage> {
                               height: 180,
                               width: double.infinity,
                               fit: BoxFit.cover,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return SizedBox(
+                                  height: 180,
+                                  child: const Center(
+                                      child: CircularProgressIndicator()),
+                                );
+                              },
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
                                   height: 180,
+                                  width: double.infinity,
                                   color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image,
-                                        size: 50, color: Colors.grey),
+                                  padding: const EdgeInsets.all(10),
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.broken_image,
+                                          color: Colors.grey, size: 40),
+                                      const SizedBox(height: 8),
+                                      // Menampilkan URL yang gagal agar mudah didiagnosa
+                                      Text(
+                                        "Gagal memuat:\n$imageUrl",
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            fontSize: 10, color: Colors.red),
+                                      ),
+                                    ],
                                   ),
                                 );
                               },
@@ -146,7 +175,8 @@ class _HomePageState extends State<HomePage> {
                                 Text(
                                   place.name,
                                   style: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
