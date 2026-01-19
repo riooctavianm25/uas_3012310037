@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uas_3012310037/data/model/destinations.dart';
-import 'package:uas_3012310037/data/model/review.dart';
 import 'package:uas_3012310037/data/repository/destinations_repository.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 
@@ -20,444 +19,334 @@ class DetailDestinationPage extends StatefulWidget {
 
 class _DetailDestinationPageState extends State<DetailDestinationPage> {
   late DestinationsRepository _repository;
-  List<Review> _reviews = [];
-  bool _isLoading = true;
+  final TextEditingController _reviewController = TextEditingController();
+  double _rating = 0;
+  bool _isSubmitted = false;
+  bool _isLoading = false;
+  String? _myReviewText;
+  double? _myRating;
 
   @override
   void initState() {
     super.initState();
     final httpService = HttpService();
     _repository = DestinationsRepository(httpService: httpService);
-    _fetchReviews();
   }
 
-  Future<void> _fetchReviews() async {
-    try {
-      final data = await _repository.getReviews(widget.place.id);
-      if (mounted) {
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitReview() async {
+    if (_reviewController.text.isNotEmpty && _rating > 0) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Pastikan place.id tersedia di model Place Anda
+      // Jika error 'id' tidak ditemukan, cek model Destinations.dart Anda
+      bool success = await _repository.submitReview(
+        widget.place.id, 
+        _rating, 
+        _reviewController.text
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (success) {
         setState(() {
-          _reviews = data;
-          _isLoading = false;
+          _myReviewText = _reviewController.text;
+          _myRating = _rating;
+          _isSubmitted = true;
         });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _showAddReviewDialog() {
-    final TextEditingController commentCtr = TextEditingController();
-    double _tempRating = 5.0;
-    bool _isSubmitting = false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text("Tulis Ulasan"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: Icon(
-                          index < _tempRating ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
-                          size: 40,
-                        ),
-                        onPressed: () {
-                          setDialogState(() {
-                            _tempRating = index + 1.0;
-                          });
-                        },
-                      );
-                    }).expand((widget) => [widget, const SizedBox(width: 4)]).toList(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: commentCtr,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: "Bagaimana pengalamanmu?",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-                child: const Text("Batal"),
-              ),
-              ElevatedButton(
-                onPressed: _isSubmitting
-                    ? null
-                    : () async {
-                        if (commentCtr.text.isEmpty) return;
-
-                        setDialogState(() => _isSubmitting = true);
-
-                        try {
-                          await _repository.submitReview(
-                            widget.place.id,
-                            {
-                              'comment': commentCtr.text,
-                              'rating': _tempRating,
-                            },
-                          );
-
-                          if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Ulasan terkirim!")),
-                            );
-                            _fetchReviews();
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            setDialogState(() => _isSubmitting = false);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Gagal mengirim ulasan")),
-                            );
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6C63FF),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text("Kirim", style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _deleteReview(int reviewId) async {
-    bool confirm = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Hapus Ulasan"),
-            content: const Text("Yakin ingin menghapus ulasan ini?"),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text("Batal")),
-              TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child:
-                      const Text("Hapus", style: TextStyle(color: Colors.red))),
-            ],
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Review saved to server successfully!"),
+            backgroundColor: Colors.green,
           ),
-        ) ??
-        false;
-
-    if (confirm) {
-      final success = await _repository.deleteReview(reviewId);
-      if (success && mounted) {
-        _fetchReviews();
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to save review to server"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please provide both a rating and a review"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  void _editReview(Review review) {
-    final TextEditingController editCtr =
-        TextEditingController(text: review.comment);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Ulasan"),
-        content: TextField(
-          controller: editCtr,
-          maxLines: 3,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            backgroundColor: const Color(0xFF6C63FF),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Image.network(
+                widget.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.broken_image, size: 50),
+                ),
+              ),
+            ),
+            leading: IconButton(
+              icon: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.arrow_back, color: Colors.black),
+              ),
               onPressed: () => Navigator.pop(context),
-              child: const Text("Batal")),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await _repository.updateReview(
-                  review.id, editCtr.text, review.rating);
-              if (success && mounted) {
-                _fetchReviews();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6C63FF)),
-            child: const Text("Simpan", style: TextStyle(color: Colors.white)),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.place.name,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6C63FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber, size: 18),
+                            SizedBox(width: 4),
+                            Text(
+                              "4.8",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6C63FF),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on,
+                          color: Colors.grey, size: 18),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          widget.place.address,
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Description",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Discover the beauty of ${widget.place.name}. This place offers an unforgettable experience with stunning views and a comfortable atmosphere. Perfect for a holiday with family or friends.",
+                    style: TextStyle(
+                        fontSize: 14, color: Colors.grey[600], height: 1.5),
+                  ),
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  
+                  if (_isSubmitted) _buildMyReview() else _buildReviewForm(),
+                  
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddReviewDialog,
-        backgroundColor: const Color(0xFF6C63FF),
-        icon: const Icon(Icons.rate_review, color: Colors.white),
-        label: const Text("Ulas", style: TextStyle(color: Colors.white)),
-      ),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
-          ),
+  Widget _buildReviewForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Write a Review",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 350,
-              width: double.infinity,
-              child: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.broken_image,
-                        size: 50, color: Colors.grey),
-                  );
+        const SizedBox(height: 12),
+        Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return IconButton(
+                iconSize: 40,
+                icon: Icon(
+                  index < _rating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _rating = index + 1;
+                  });
                 },
-              ),
-            ),
-            Transform.translate(
-              offset: const Offset(0, -30),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.place.name,
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on,
-                            color: Color(0xFF6C63FF), size: 20),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            widget.place.address,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      "Description",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.place.description,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        height: 1.6,
-                        color: Colors.black54,
-                      ),
-                      textAlign: TextAlign.justify,
-                    ),
-                    const SizedBox(height: 30),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Ulasan Pengunjung",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          "${widget.place.rating} / 5.0",
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6C63FF)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _reviews.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(20.0),
-                                child: Text("Belum ada ulasan.",
-                                    style: TextStyle(color: Colors.grey)),
-                              )
-                            : ListView.builder(
-                                padding: EdgeInsets.zero,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _reviews.length,
-                                itemBuilder: (context, index) {
-                                  final review = _reviews[index];
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 16),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: Colors.grey.shade200),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  backgroundColor:
-                                                      Colors.grey[300],
-                                                  radius: 16,
-                                                  child: const Icon(Icons.person,
-                                                      size: 20,
-                                                      color: Colors.white),
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Text(
-                                                  review.user,
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
-                                            if (review.isMyReview)
-                                              PopupMenuButton<String>(
-                                                onSelected: (value) {
-                                                  if (value == 'edit') {
-                                                    _editReview(review);
-                                                  } else if (value ==
-                                                      'delete') {
-                                                    _deleteReview(review.id);
-                                                  }
-                                                },
-                                                itemBuilder:
-                                                    (BuildContext context) => [
-                                                  const PopupMenuItem(
-                                                    value: 'edit',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.edit,
-                                                            size: 18,
-                                                            color: Colors.blue),
-                                                        SizedBox(width: 8),
-                                                        Text('Edit'),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'delete',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.delete,
-                                                            size: 18,
-                                                            color: Colors.red),
-                                                        SizedBox(width: 8),
-                                                        Text('Hapus'),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                                child: const Icon(Icons.more_vert,
-                                                    color: Colors.grey),
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children:
-                                              List.generate(5, (starIndex) {
-                                            return Icon(
-                                              starIndex < review.rating
-                                                  ? Icons.star
-                                                  : Icons.star_border,
-                                              color: Colors.amber,
-                                              size: 16,
-                                            );
-                                          }),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          review.comment,
-                                          style: TextStyle(
-                                              color: Colors.grey[700],
-                                              height: 1.4),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                    const SizedBox(height: 80),
-                  ],
-                ),
-              ),
-            ),
-          ],
+              );
+            }),
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _reviewController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: "Share your experience...",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6C63FF)),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _submitReview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6C63FF),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _isLoading 
+              ? const SizedBox(
+                  height: 20, width: 20, 
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                )
+              : const Text(
+                  "Submit Review",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMyReview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "My Review",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Color(0xFFE0E0E0),
+                    child: Icon(Icons.person, color: Colors.grey),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "You",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Row(
+                        children: List.generate(5, (index) {
+                          return Icon(
+                            index < (_myRating ?? 0)
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: Colors.amber,
+                            size: 14,
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    "Just now",
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _myReviewText ?? "",
+                style: const TextStyle(color: Colors.black87, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

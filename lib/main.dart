@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uas_3012310037/presentation/home_page.dart';
 import 'package:uas_3012310037/presentation/login_page.dart';
 import 'package:uas_3012310037/presentation/register_page.dart';
 
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
+      theme: ThemeData( 
         // This is the theme of your application.
         //
         // TRY THIS: Try running your application with "flutter run". You'll see

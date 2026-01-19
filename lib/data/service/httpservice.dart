@@ -1,19 +1,22 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 
 class HttpService {
   final String baseURL = 'http://192.168.1.4:8000/api/';
 
-  Future<http.Response> get(String endpoint, Map map) async {
-    final url = Uri.parse('$baseURL$endpoint');
+  Future<http.Response> get(String endpoint, Map<String, dynamic>? queryParams) async {
+    Uri url = Uri.parse('$baseURL$endpoint');
+    
+    if (queryParams != null && queryParams.isNotEmpty) {
+      final formattedParams = queryParams.map((key, value) => MapEntry(key, value.toString()));
+      url = url.replace(queryParameters: formattedParams);
+    }
+
     final response = await http.get(
       url,
       headers: {'Accept': 'application/json'},
     );
-    log(response.body);
     return response;
   }
 
@@ -39,27 +42,21 @@ class HttpService {
     try {
       final url = Uri.parse('$baseURL$endPoint');
       final request = http.MultipartRequest('POST', url);
-      // Add fields
+      
       request.fields.addAll(fields);
-      // Add file if available
+      
       if (file != null) {
         final imageFile = await http.MultipartFile.fromPath(
           fileFieldName,
           file.path,
         );
         request.files.add(imageFile);
-        log('File added: ${file.path}');
       }
-      log('POST with File to: $url');
-      log('Fields: ${request.fields}');
-      log('Files: ${request.files.length}');
-      // Send request
+      
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      log('POST with File Response: ${response.statusCode} - ${response.body}');
       return response;
     } catch (e) {
-      log('Error in postWithFile: $e');
       rethrow;
     }
   }
@@ -74,7 +71,6 @@ class HttpService {
       },
       body: jsonEncode(body),
     );
-    log('PUT Response: ${response.body}');
     return response;
   }
 

@@ -62,25 +62,19 @@ class DestinationsRepository {
     }
   }
 
-  Future<Map<String, dynamic>> getUserFavorites() async {
-    final response = await httpService.get('favorites', {});
-    return jsonDecode(response.body);
-  }
-
-  Future<void> addFavorite(int destinationId) async {
-    await httpService.post('favorites', {'destination_id': destinationId});
-  }
-
-  Future<void> removeFavorite(int destinationId) async {
-    await httpService.delete('favorites/$destinationId');
-  }
-
-  Future<void> submitReview(int destinationId, Map<String, dynamic> reviewData) async {
-    final data = {
-      'destination_id': destinationId,
-      ...reviewData,
-    };
-    await httpService.post('reviews', data);
+  Future<bool> submitReview(int destinationId, double rating, String review) async {
+    try {
+      final data = {
+        'destination_id': destinationId,
+        'rating': rating,
+        'review': review,
+      };
+      
+      final response = await httpService.post('reviews', data);
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<List<Review>> getReviews(int destinationId) async {
