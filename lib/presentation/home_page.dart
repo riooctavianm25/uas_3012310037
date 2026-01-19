@@ -99,11 +99,17 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final place = places[index];
                     
-                    String cleanPath = place.image.replaceAll('public/', '');
+                    // PERBAIKAN: Hapus 'public/' DAN 'storage/' agar tidak dobel
+                    String cleanPath = place.image
+                        .replaceAll('public/', '')
+                        .replaceAll('storage/', '');
+                    
                     String imageUrl = place.image.startsWith('http') 
                         ? place.image 
                         : _imageBaseUrl + cleanPath;
+                        
                     print("Flutter mencoba membuka: $imageUrl");
+                    
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(

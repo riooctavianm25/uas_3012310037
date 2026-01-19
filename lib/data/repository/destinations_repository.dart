@@ -27,7 +27,7 @@ class DestinationsRepository {
 
   Future<bool> addDestination(File image, String name, String desc, String address) async {
     try {
-      var uri = Uri.parse('http://10.2.26.179:8000/api/destinations');
+      var uri = Uri.parse('http://10.16.44.176:8000/api/destinations');
       
       var request = http.MultipartRequest('POST', uri);
 
