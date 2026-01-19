@@ -22,7 +22,7 @@ class _HomePageState extends State<HomePage> {
   final ImagePicker _picker = ImagePicker();
   
   // Ganti IP ini sesuai IP Laptop Anda saat ini
-  final String _currentIp = "10.16.44.176"; 
+  final String _currentIp = "192.168.1.4"; 
   late final String _imageBaseUrl;
 
   @override
