@@ -10,10 +10,21 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    final userData = json['user'] != null ? json['user'] : json;
+    var data = json;
+    if (json.containsKey('data') && json['data'] is Map) {
+      data = json['data'];
+    }
+
+    String token = '';
+    if (data['token'] != null) token = data['token'];
+    else if (data['access_token'] != null) token = data['access_token'];
+    else if (json['token'] != null) token = json['token'];
+    else if (json['access_token'] != null) token = json['access_token'];
+
+    final userData = data['user'] ?? json['user'] ?? data;
 
     return AuthResponse(
-      token: json['token'] ?? json['access_token'] ?? '', 
+      token: token,
       name: userData['name'] ?? '',
       email: userData['email'] ?? '',
     );
