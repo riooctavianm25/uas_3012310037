@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uas_3012310037/data/model/review.dart';
 import 'package:uas_3012310037/data/service/httpservice.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 
@@ -54,12 +55,9 @@ class DestinationsRepository {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
-        final respStr = await response.stream.bytesToString();
-        print("Upload failed: ${response.statusCode} - $respStr");
         return false;
       }
     } catch (e) {
-      print("Error upload: $e");
       return false;
     }
   }
@@ -85,8 +83,42 @@ class DestinationsRepository {
     await httpService.post('reviews', data);
   }
 
-  Future<Map<String, dynamic>> getReviews(int destinationId) async {
-    final response = await httpService.get('reviews', {'destination_id': destinationId.toString()});
-    return jsonDecode(response.body);
+  Future<List<Review>> getReviews(int destinationId) async {
+    try {
+      final response = await httpService.get('reviews', {'destination_id': destinationId.toString()});
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      
+      if (jsonResponse['data'] != null) {
+        final List<dynamic> data = jsonResponse['data'];
+        return data.map((e) => Review.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<bool> updateReview(int reviewId, String newComment, double newRating) async {
+    try {
+      final response = await httpService.put(
+        'reviews/$reviewId',
+        {
+          'comment': newComment,
+          'rating': newRating,
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteReview(int reviewId) async {
+    try {
+      final response = await httpService.delete('reviews/$reviewId');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 }
