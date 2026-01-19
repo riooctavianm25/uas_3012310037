@@ -50,8 +50,14 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final authResponse = await _authRepository.login(request.toJson());
 
+      // Simpan Token ke SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', authResponse.token);
+
+      // Debug Print untuk memastikan token tersimpan di console
+      print("=== LOGIN SUCCESS ===");
+      print("Token Saved: ${authResponse.token}");
+      print("=====================");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
