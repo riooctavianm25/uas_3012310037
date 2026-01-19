@@ -7,6 +7,7 @@ import 'package:uas_3012310037/data/repository/destinations_repository.dart';
 import 'package:uas_3012310037/data/usecase/response/get_places_response.dart';
 import 'package:uas_3012310037/presentation/add_place.dart';
 import 'package:uas_3012310037/presentation/profile_page.dart';
+import 'package:uas_3012310037/presentation/detail_page.dart'; // Import halaman detail
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,9 +21,9 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final _searchCtr = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  
+
   // Ganti IP ini sesuai IP Laptop Anda saat ini
-  final String _currentIp = "192.168.1.4"; 
+  final String _currentIp = "192.168.1.4";
   late final String _imageBaseUrl;
 
   @override
@@ -106,88 +107,98 @@ class _HomePageState extends State<HomePage> {
                     // LOGIKA PERBAIKAN URL:
                     String imageUrl;
                     if (place.image.startsWith('http')) {
-                      // Jika URL dari database mengandung 10.0.2.2 (Emulator), paksa ganti ke IP Laptop
                       imageUrl = place.image.replaceAll('10.0.2.2', _currentIp);
                     } else {
-                      // Jika URL relative, gabungkan dengan base URL
                       String cleanPath = place.image
                           .replaceAll('public/', '')
                           .replaceAll('storage/', '');
                       imageUrl = _imageBaseUrl + cleanPath;
                     }
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12)),
-                            child: Image.network(
-                              imageUrl,
-                              height: 180,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return SizedBox(
-                                  height: 180,
-                                  child: const Center(
-                                      child: CircularProgressIndicator()),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 180,
-                                  width: double.infinity,
-                                  color: Colors.grey[300],
-                                  padding: const EdgeInsets.all(10),
-                                  alignment: Alignment.center,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.broken_image,
-                                          color: Colors.grey, size: 40),
-                                      const SizedBox(height: 8),
-                                      // Menampilkan URL yang gagal agar mudah didiagnosa
-                                      Text(
-                                        "Gagal memuat:\n$imageUrl",
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                            fontSize: 10, color: Colors.red),
-                                      ),
-                                    ],
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailDestinationPage(
+                              place: place,
+                              imageUrl: imageUrl,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12)),
+                              child: Image.network(
+                                imageUrl,
+                                height: 180,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return SizedBox(
+                                    height: 180,
+                                    child: const Center(
+                                        child: CircularProgressIndicator()),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 180,
+                                    width: double.infinity,
+                                    color: Colors.grey[300],
+                                    padding: const EdgeInsets.all(10),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.broken_image,
+                                            color: Colors.grey, size: 40),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Gagal memuat:\n$imageUrl",
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              fontSize: 10, color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    place.name,
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                );
-                              },
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    place.address,
+                                    style: TextStyle(
+                                        color: Colors.grey[600], fontSize: 13),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  place.name,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  place.address,
-                                  style: TextStyle(
-                                      color: Colors.grey[600], fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
